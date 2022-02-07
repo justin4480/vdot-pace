@@ -15,6 +15,8 @@ class Model:
                   'intercept': -0.0009109768232632535},
             'i': {'coef': np.array([5.54231655e-05, 6.40550449e-04]),
                   'intercept': -0.0010179014592616746},
+            'r': {'coef': np.array([8.02825088e-05, 1.38140603e-05]),
+                   'intercept': 0.0005785616632812381},
         }
         self.vdot_min = 30
         self.vdot_max = 85
@@ -155,7 +157,8 @@ class Controller:
                 m_pace = self.model.get_min_per_distance(i, 'm', km_mi)
                 t_pace = self.model.get_min_per_distance(i, 't', km_mi)
                 i_pace = self.model.get_min_per_distance(i, 'i', km_mi)
-                results.append((i, '', m_pace, t_pace, i_pace))
+                r_pace = self.model.get_min_per_distance(i, 'r', km_mi)
+                results.append((i, '', m_pace, t_pace, i_pace, r_pace))
             except:
                 continue
         # output to View
