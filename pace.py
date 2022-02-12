@@ -5,27 +5,112 @@ from tkinter import ttk
 from tkinter.messagebox import showerror
 import re
 
+paces = {
+    'e': 1.0,
+    'm': 1.0,
+    't': 1.0,
+    'i': 1.0,
+    'r': 1.0,
+}
+
+distances = {
+    'meters': 0.001,
+    'kilometers': 1.0,
+    'miles': 1.60934,
+}
+
+races = {
+    '1 mile': 1.60934,
+    '1.5k': 1.5,
+    '3k': 3.0,
+    '2 mile': 3.21869,
+    '5k': 5.0,
+    '10k': 10.0,
+    '15k': 15.0,
+    '1/2 marathon': 21.0975,
+    'marathon': 42.195,
+}
+
+pace_distance_and_weights = {
+    'e': {
+        'distance': 1.0,
+        'weights': np.array([4949.27103996282, 35.90981260691225,
+                            -1471.4577840422419, -10780.124357908137,
+                            -0.20469289084241282, 0.0005847523343618377])},
+    'm': {
+        'distance': 1.0,
+        'weights': np.array([5769.83766356983, 49.293532532288424,
+                            -1810.3895026597256, -12851.045985015659,
+                            -0.291126234807642, 0.0008304956752454018])},
+    't': {
+        'distance': 1.0,
+        'weights': np.array([223.6265478238622, -5.763413154957469,
+                            19.099113274553744, 6742.587058504519,
+                            0.05418680896355041, -0.0002009103554740932])},
+    'i': {
+        'distance': 1.0,
+        'weights': np.array([-1397.1455774707638, -20.7582565066043,
+                            538.6711541187304, 12633.618023527979,
+                            0.14848775051980745, -0.0004883293344164485])},
+    'r': {
+        'distance': 1.0,
+        'weights': np.array([10660.490550384873, 130.77354304136978,
+                            -3692.965990299492, -27355.696889999857,
+                            -0.9608418286816445, 0.003311943788503413])},
+    '1.5k': {
+        'distance': 1.5,
+        'weights': np.array([1182.085091699069, 6.367170440963579,
+                            -322.778681874542, 7865.746434686376,
+                            -0.03397766949704373, 0.00011018322157951843])},
+    '1 mile': {
+        'distance': 1.60934,
+        'weights': np.array([2052.1357862906307, 12.837570671730337,
+                            -589.4470042830931, 5178.5201067205235,
+                            -0.06521400319947102, 0.00017038837722793687])},
+    '3k': {
+        'distance': 3.0,
+        'weights': np.array([5579.688245963416, 32.668431971728005,
+                            -1583.8426434415262, 1017.5046612753332,
+                            -0.15706875781688723, 0.0003850029693239776])},
+    '2 mile': {
+        'distance': 3.21869,
+        'weights': np.array([833.4078760596344, -11.445597212321871,
+                            -49.24448692423541, 22360.06173224382,
+                            0.11415994058425183, -0.0004261276107087042])},
+    '5k': {
+        'distance': 5.0,
+        'weights': np.array([6928.740310588318, 37.654693906805804,
+                            -1910.27798719494, 12948.72196202415,
+                            -0.18413594536234612, 0.0004763364065638598])},
+    '10k': {
+        'distance': 10.0,
+        'weights': np.array([11045.008738808692, 48.69849842830903,
+                            -2919.2894591605072, 42237.01880476229,
+                            -0.18713464363791843, 0.0003564040634955745])},
+    '15k': {
+        'distance': 15.0,
+        'weights': np.array([22128.546722378185, 113.31445391803007,
+                            -6060.291277969021, 41959.21146722964,
+                            -0.5017832685670811, 0.0011604066030486138])},
+    '1/2 marathon': {
+        'distance': 21.0975,
+        'weights': np.array([36453.132974194465, 190.89491161314612,
+                            -10044.062274881275, 35179.734779269216,
+                            -0.8700911886656826, 0.0020931669969286304])},
+    'marathon': {
+        'distance': 42.195,
+        'weights': np.array([60636.22986513261, 246.74130046555726,
+                            -15730.318846607715, 109197.36142110199,
+                            -0.9739181072484939, 0.002111978999892017])},
+}
+
+def format_time(td: datetime.timedelta, strip: bool=True):
+    td = datetime.timedelta(seconds=td.seconds).__str__()
+    return re.search(pattern=r'[1-9].*', string=td).group() if strip else td
+
 
 class Model:
     def __init__(self):
-        self.lr_pace = {
-            'e_min': {'coef': np.array([4.74049146e-05, 3.83990983e-04]),
-                      'intercept': -0.000496647540619251},
-            'e_max': {'coef': np.array([4.12734268e-05, 2.91041757e-04]),
-                      'intercept': -0.0002086181081857063},
-            'm': {'coef': np.array([5.20176045e-05, 5.60078308e-04]),
-                  'intercept': -0.0011082739994069607},
-            't': {'coef': np.array([5.15585827e-05, 5.76422687e-04]),
-                  'intercept': -0.0009109768232632535},
-            'i': {'coef': np.array([5.54231655e-05, 6.40550449e-04]),
-                  'intercept': -0.0010179014592616746},
-            'r': {'coef': np.array([8.02825088e-05, 1.38140603e-05]),
-                   'intercept': 0.0005785616632812381},
-        }
-        self.lr_race = {
-            'm': {'coef': np.array([1.35264281e-06, 5.55779711e-06]),
-                  'intercept': -1.9773170200901904e-06},
-        }
         self.vdot_min = 30
         self.vdot_max = 85
 
@@ -40,48 +125,62 @@ class Model:
         else:
             return True
     
-    def check_valid_intensity(self, intensity):
-        if intensity not in self.lr_pace.keys():
-            raise ValueError((
-                f'intensity should be one of '
-                f'{self.lr_pace.keys()}'
-            ))
-        else:
-            return True
+    # def check_valid_intensity(self, intensity):
+    #     if intensity not in self.lr_pace.keys():
+    #         raise ValueError((
+    #             f'intensity should be one of '
+    #             f'{self.lr_pace.keys()}'
+    #         ))
+    #     else:
+    #         return True
 
-    def check_valid_km_mi(self, km_mi):
-        if km_mi not in ['km', 'mi']:
-            raise ValueError('km_mi should be km or mi')
-        else:
-            return True
+    # def check_valid_km_mi(self, km_mi):
+    #     if km_mi not in ['km', 'mi']:
+    #         raise ValueError('km_mi should be km or mi')
+    #     else:
+    #         return True
 
-    def get_pace_raw(self, vdot: int, intensity: str):
-        coef, intercept = self.lr_pace[intensity].values()
-        X = np.array([vdot, np.log(vdot)])
-        return 1 / (intercept + (X.dot(coef)))
+    @staticmethod
+    def get_time_from_vdot_and_race(vdot, race):
+        X = np.array([1, vdot, np.log(vdot), 1/vdot, vdot**2, vdot**3])
+        w = pace_distance_and_weights[race]['weights']
+        seconds = np.round(X @ w,)
+        return datetime.timedelta(seconds=seconds)
 
-    def get_pace_formatted(self, vdot: int, intensity: str, km_mi: str):
-        self.check_valid_vdot(vdot)
-        self.check_valid_intensity(intensity)
-        self.check_valid_km_mi(km_mi)
-        convert = 0.621371 if km_mi == 'mi' else 1
-        seconds = np.round(self.get_pace_raw(vdot, intensity) / convert, 0)
-        pace = datetime.timedelta(seconds=seconds).__str__()
-        return re.search(r'[1-9].*', pace).group()
+    @staticmethod
+    def get_pace_from_vdot_and_instensity(vdot, intensity):
+        X = np.array([1, vdot, np.log(vdot), 1/vdot, vdot**2, vdot**3])
+        w = pace_distance_and_weights[intensity]['weights']
+        seconds = np.round(X @ w,)
+        return datetime.timedelta(seconds=seconds)
 
-    def get_race_raw(self, vdot: int, intensity: str):
-        coef, intercept = self.lr_race[intensity].values()
-        X = np.array([vdot, np.log(vdot)])
-        return 1 / (intercept + (X.dot(coef)))
+    @staticmethod
+    def calculate_pace(time: datetime.timedelta, distance: float) -> datetime.timedelta:
+        return time / distance
 
-    def get_race_formatted(self, vdot: int, intensity: str, km_mi: str):
-        self.check_valid_vdot(vdot)
-        self.check_valid_intensity(intensity)
-        self.check_valid_km_mi(km_mi)
-        convert = 0.621371 if km_mi == 'mi' else 1
-        seconds = np.round(self.get_race_raw(vdot, intensity) / convert, 0)
-        pace = datetime.timedelta(seconds=seconds).__str__()
-        return re.search(r'[1-9].*', pace).group()
+    @staticmethod
+    def calculate_time(distance: float, pace: datetime.timedelta) -> datetime.timedelta:
+        return distance * pace
+
+    @staticmethod
+    def calculate_distance(time: datetime.timedelta, pace: datetime.timedelta) -> float:
+        return np.round(time / pace, 5)
+
+    @staticmethod
+    def convert_pace_km_to_miles(pace: datetime.timedelta) -> datetime.timedelta:
+        return pace * 1.609344
+
+    @staticmethod
+    def convert_pace_miles_to_km(pace: datetime.timedelta) -> datetime.timedelta:
+        return pace / 1.609344
+
+    @staticmethod
+    def convert_distance_km_to_miles(pace: datetime.timedelta) -> datetime.timedelta:
+        return pace / 1.609344
+
+    @staticmethod
+    def convert_distance_miles_to_km(pace: datetime.timedelta) -> datetime.timedelta:
+        return pace * 1.609344
 
 
 class View(ttk.Frame):
@@ -89,7 +188,7 @@ class View(ttk.Frame):
         super().__init__(container)
 
         # field options
-        options = {'padx': 5, 'pady': 5}
+        options = {'padx': 10, 'pady': 10}
 
         # km_mi label
         self.km_mi_label = ttk.Label(self, text='Km / Mile')
@@ -102,8 +201,8 @@ class View(ttk.Frame):
                                  variable=self.km_mi, value='km')
         self.mi = tk.Radiobutton(self, text='Mile',
                                  variable=self.km_mi, value='mi')
-        self.km.grid(row=1, column=0, sticky=tk.W, padx=20)
-        self.mi.grid(row=2, column=0, sticky=tk.W, padx=20)
+        self.km.grid(row=1, column=0, sticky=tk.W, padx=options['padx'])
+        self.mi.grid(row=2, column=0, sticky=tk.W, padx=options['padx'])
 
         # vdot label
         self.vdot_label = ttk.Label(self, text='VDOT')
@@ -112,43 +211,29 @@ class View(ttk.Frame):
         # vdot entry
         self.vdot = tk.StringVar()
         self.vdot_entry = ttk.Entry(self, textvariable=self.vdot)
-        self.vdot_entry.grid(row=3, column=1, **options)
+        self.vdot_entry.grid(row=4, column=0, sticky=tk.W, padx=options['padx'])
         self.vdot_entry.focus()
 
         # get button
-        self.refresh_button = ttk.Button(self, text='Get pace')
+        self.refresh_button = ttk.Button(self, text='Refresh')
         self.refresh_button['command'] = self.refresh_button_clicked
-        self.refresh_button.grid(row=4, column=0, sticky=tk.W, **options)
+        self.refresh_button.grid(row=5, column=0, sticky=tk.W, **options)
 
         # pace table
-        columns = ('vdot', 'e_pace', 'm_pace', 't_pace', 'i_pace', 'r_pace')
-        self.pace_tree = ttk.Treeview(self, columns=columns,
-                                 show='headings', height=5)
-        self.pace_tree.column("vdot", anchor=tk.CENTER, stretch=tk.NO, width=50)
-        self.pace_tree.column("e_pace", anchor=tk.CENTER, stretch=tk.NO, width=90)
-        self.pace_tree.column("m_pace", anchor=tk.CENTER, stretch=tk.NO, width=60)
-        self.pace_tree.column("t_pace", anchor=tk.CENTER, stretch=tk.NO, width=60)
-        self.pace_tree.column("i_pace", anchor=tk.CENTER, stretch=tk.NO, width=60)
-        self.pace_tree.column("r_pace", anchor=tk.CENTER, stretch=tk.NO, width=60)
-        self.pace_tree.heading('vdot', text='VDOT')
-        self.pace_tree.heading('e_pace', text='E pace')
-        self.pace_tree.heading('m_pace', text='M pace')
-        self.pace_tree.heading('t_pace', text='T pace')
-        self.pace_tree.heading('i_pace', text='I pace')
-        self.pace_tree.heading('r_pace', text='R pace')
-        self.pace_tree.grid(row=5, columnspan=3, sticky=tk.W)
+        columns = ['vdot'] + list(paces.keys())
+        self.pace_tree = ttk.Treeview(self, columns=columns, show='headings', height=5)
+        for column in columns:
+            self.pace_tree.column(f"{column}", anchor=tk.CENTER, stretch=tk.NO, width=110)
+            self.pace_tree.heading(f"{column}", text=f"{column}")
+        self.pace_tree.grid(row=6, columnspan=3, sticky=tk.W, **options)
 
         # race table
-        columns = ('vdot', '10k_time', 'm_time')
-        self.race_tree = ttk.Treeview(self, columns=columns,
-                                 show='headings', height=5)
-        self.race_tree.column("vdot", anchor=tk.CENTER, stretch=tk.NO, width=50)
-        self.race_tree.column("10k_time", anchor=tk.CENTER, stretch=tk.NO, width=90)
-        self.race_tree.column("m_time", anchor=tk.CENTER, stretch=tk.NO, width=60)
-        self.race_tree.heading('vdot', text='VDOT')
-        self.race_tree.heading('10k_time', text='10k time')
-        self.race_tree.heading('m_time', text='M time')
-        self.race_tree.grid(row=6, columnspan=3, sticky=tk.W)
+        columns = ['vdot'] + list(races.keys())
+        self.race_tree = ttk.Treeview(self, columns=columns, show='headings', height=5)
+        for column in columns:
+            self.race_tree.column(f"{column}", anchor=tk.CENTER, stretch=tk.NO, width=110)
+            self.race_tree.heading(f"{column}", text=f"{column}")
+        self.race_tree.grid(row=7, columnspan=3, sticky=tk.W, **options)
 
         # add padding to the frame and show it
         self.grid(padx=10, pady=10, sticky=tk.NSEW)
@@ -165,17 +250,19 @@ class View(ttk.Frame):
             self.controller.get_pace(int(self.vdot.get()), self.km_mi.get())
             self.controller.get_race(int(self.vdot.get()), self.km_mi.get())
 
-    def print_pace_to_table(self, records, vdot):
+    def print_pace_to_table(self, records, users_vdot):
         self.pace_tree.delete(*self.pace_tree.get_children())
-        for record in records:
-            self.pace_tree.insert('', tk.END, values=record, iid=record[0])
-        self.pace_tree.selection_set(vdot)
+        for vdot, times in records.items():
+            values = [vdot] + [format_time(time) for time in times.values()]
+            self.pace_tree.insert('', tk.END, values=values, iid=vdot)
+        self.pace_tree.selection_set(users_vdot)
 
-    def print_race_to_table(self, records, vdot):
+    def print_race_to_table(self, records, users_vdot):
         self.race_tree.delete(*self.race_tree.get_children())
-        for record in records:
-            self.race_tree.insert('', tk.END, values=record, iid=record[0])
-        self.race_tree.selection_set(vdot)
+        for vdot, times in records.items():
+            values = [vdot] + [format_time(time) for time in times.values()]
+            self.race_tree.insert('', tk.END, values=values, iid=vdot)
+        self.race_tree.selection_set(users_vdot)
 
     def show_error(self, message):
         showerror(title='Error', message=message)
@@ -192,19 +279,15 @@ class Controller:
         except ValueError as error:
             self.view.show_error(error)
 
-    def get_pace(self, vdot, km_mi):            
+    def get_pace(self, vdot, km_mi):
+        """
+        returns dictionary of paces for all avalible intensities over a range of vdots
+        """
         # get pace from Model
-        results = []
-        for i in range(vdot-2, vdot+3):
+        results = {}
+        for v in range(vdot-2, vdot+3):
             try:
-                e_min_pace = self.model.get_pace_formatted(i, 'e_min', km_mi)
-                e_max_pace = self.model.get_pace_formatted(i, 'e_max', km_mi)
-                e_pace = e_min_pace + ' - ' + e_max_pace
-                m_pace = self.model.get_pace_formatted(i, 'm', km_mi)
-                t_pace = self.model.get_pace_formatted(i, 't', km_mi)
-                i_pace = self.model.get_pace_formatted(i, 'i', km_mi)
-                r_pace = self.model.get_pace_formatted(i, 'r', km_mi)
-                results.append((i, e_pace, m_pace, t_pace, i_pace, r_pace))
+                results[v] = {pace: self.model.get_pace_from_vdot_and_instensity(v, pace) for pace in paces}
             except:
                 continue
         # output to View
@@ -213,23 +296,21 @@ class Controller:
 
     def get_race(self, vdot, km_mi):            
         # get race from Model
-        results = []
-        for i in range(vdot-2, vdot+3):
+        results = {}
+        for v in range(vdot-2, vdot+3):
             try:
-                m_race = self.model.get_race_formatted(i, 'm', km_mi)
-                results.append((i, '', m_race))
+                results[v] = {race: self.model.get_time_from_vdot_and_race(v, race) for race in races}
             except:
                 continue
         # output to View
         self.view.print_race_to_table(results, vdot)
 
 
-
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title('VDOT')
-        self.geometry('500x500')
+        self.geometry('1200x500')
         self.resizable(True, True)
         model = Model()
         view = View(self)
