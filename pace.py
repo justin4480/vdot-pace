@@ -6,8 +6,11 @@ from tkinter.messagebox import showerror
 import re
 
 training_intensities = ['e', 'm', 't', 'i', 'r']
+
 races = ['1 mile', '1.5k', '3k', '2 mile', '5k',
          '10k', '15k', '1/2 marathon', 'marathon']
+
+base_distances = ['miles', 'kilometers', 'meters']
 
 distances = {
     'e': 1.0,
@@ -17,6 +20,7 @@ distances = {
     'r': 1.0,
     'meters': 0.001,
     'kilometers': 1.0,
+    'miles': 1.60934,
     '1 mile': 1.60934,
     '1.5k': 1.5,
     '3k': 3.0,
@@ -93,21 +97,6 @@ class Model:
             ))
         else:
             return True
-    
-    # def check_valid_intensity(self, intensity):
-    #     if intensity not in self.lr_pace.keys():
-    #         raise ValueError((
-    #             f'intensity should be one of '
-    #             f'{self.lr_pace.keys()}'
-    #         ))
-    #     else:
-    #         return True
-
-    # def check_valid_km_mi(self, km_mi):
-    #     if km_mi not in ['km', 'mi']:
-    #         raise ValueError('km_mi should be km or mi')
-    #     else:
-    #         return True
 
     @staticmethod
     def get_pace_from_vdot_and_intensity(vdot, intensity):
@@ -156,34 +145,33 @@ class View(ttk.Frame):
         super().__init__(container)
 
         # field options
-        options = {'padx': 10, 'pady': 10}
-
-        # km_mi label
-        self.km_mi_label = ttk.Label(self, text='Km / Mile')
-        self.km_mi_label.grid(row=0, column=0, sticky=tk.W, **options)
-
-        # vdot entry
-        self.km_mi = tk.StringVar()
-        self.km_mi.set('mi')
-        self.km = tk.Radiobutton(self, text='Km', variable=self.km_mi, value='km')
-        self.mi = tk.Radiobutton(self, text='Mile', variable=self.km_mi, value='mi')
-        self.km.grid(row=1, column=0, sticky=tk.W, padx=options['padx'])
-        self.mi.grid(row=2, column=0, sticky=tk.W, padx=options['padx'])
+        options = {'anchor': tk.W, 'padx': 10, 'pady': 10}
+        options_tight = {'anchor': tk.W, 'padx': 10, 'pady': 2}
 
         # vdot label
-        self.vdot_label = ttk.Label(self, text='VDOT')
-        self.vdot_label.grid(row=3, column=0, sticky=tk.W, **options)
-
-        # vdot entry
+        self.frame_vdot = ttk.Frame(self)
+        self.frame_vdot.pack(**options_tight)
+        self.vdot_label = ttk.Label(self.frame_vdot, text='VDOT:', width=8)
+        self.vdot_label.pack(padx=10, side='left')
         self.vdot = tk.StringVar()
-        self.vdot_entry = ttk.Entry(self, textvariable=self.vdot)
-        self.vdot_entry.grid(row=4, column=0, sticky=tk.W, padx=options['padx'])
+        self.vdot_entry = ttk.Entry(self.frame_vdot, textvariable=self.vdot, width=10)
+        self.vdot_entry.pack(padx=10, side='left')
         self.vdot_entry.focus()
+
+        # km / mi entry
+        self.frame_km_mi = ttk.Frame(self)
+        self.frame_km_mi.pack(**options_tight)
+        self.vdot_label = ttk.Label(self.frame_km_mi, text='Km / Mile:', width=8)
+        self.vdot_label.pack(padx=10, side='left')
+        self.km_mi = tk.StringVar()
+        optionlist = ['km', 'km', 'mi']
+        self.km_mi_menu = ttk.OptionMenu(self.frame_km_mi, self.km_mi, *optionlist)
+        self.km_mi_menu.pack(**options)
 
         # get button
         self.refresh_button = ttk.Button(self, text='Refresh')
         self.refresh_button['command'] = self.refresh_button_clicked
-        self.refresh_button.grid(row=5, column=0, sticky=tk.W, **options)
+        self.refresh_button.pack(**options)
 
         # training intensity pace table
         columns = ['vdot'] + training_intensities
@@ -191,7 +179,7 @@ class View(ttk.Frame):
         for column in columns:
             self.training_intensity_pace_tree.column(f"{column}", anchor=tk.CENTER, stretch=tk.NO, width=110)
             self.training_intensity_pace_tree.heading(f"{column}", text=f"{column}")
-        self.training_intensity_pace_tree.grid(row=6, columnspan=3, sticky=tk.W, **options)
+        self.training_intensity_pace_tree.pack(**options)
 
         # race pace table
         columns = ['vdot'] + races
@@ -199,7 +187,7 @@ class View(ttk.Frame):
         for column in columns:
             self.race_pace_tree.column(f"{column}", anchor=tk.CENTER, stretch=tk.NO, width=110)
             self.race_pace_tree.heading(f"{column}", text=f"{column}")
-        self.race_pace_tree.grid(row=7, columnspan=3, sticky=tk.W, **options)
+        self.race_pace_tree.pack(**options)
 
         # race time table
         columns = ['vdot'] + races
@@ -207,10 +195,58 @@ class View(ttk.Frame):
         for column in columns:
             self.race_time_tree.column(f"{column}", anchor=tk.CENTER, stretch=tk.NO, width=110)
             self.race_time_tree.heading(f"{column}", text=f"{column}")
-        self.race_time_tree.grid(row=8, columnspan=3, sticky=tk.W, **options)
+        self.race_time_tree.pack(**options)
+
+        # Pace Calculator | Time
+        self.frame_time = ttk.Frame(self)
+        self.frame_time.pack(**options_tight)
+        self.time_label = ttk.Label(self.frame_time, text='Time', width=8)
+        self.time_label.pack(padx=10, side='left')
+        self.time_hour = tk.StringVar()
+        self.time_hour = ttk.Entry(self.frame_time, textvariable=self.time_hour, width=5)
+        self.time_hour.pack(padx=5, side='left')
+        ttk.Label(self.frame_time, text=':').pack(padx=3, side='left')
+        self.time_min = tk.StringVar()
+        self.time_min = ttk.Entry(self.frame_time, textvariable=self.time_min, width=5)
+        self.time_min.pack(padx=5, side='left')
+        ttk.Label(self.frame_time, text=':').pack(padx=3, side='left')
+        self.time_sec = tk.StringVar()
+        self.time_sec = ttk.Entry(self.frame_time, textvariable=self.time_sec, width=5)
+        self.time_sec.pack(padx=5, side='left')
+
+        # Pace Calculator | Distance
+        self.frame_distance = ttk.Frame(self)
+        self.frame_distance.pack(**options_tight)
+        self.distance_label = ttk.Label(self.frame_distance, text='Distance', width=8)
+        self.distance_label.pack(padx=10, side='left')
+        self.distance_units = tk.StringVar()
+        self.distance_units = ttk.Entry(self.frame_distance, textvariable=self.distance_units, width=5)
+        self.distance_units.pack(padx=5, side='left')
+        self.distance_race = tk.StringVar()
+        options = base_distances + races
+        self.distance_race = ttk.OptionMenu(self.frame_distance, self.distance_race, options[0], *options)
+        self.distance_race.pack(padx=5, side='left')
+
+        # Pace Calculator | Pace
+        self.frame_pace = ttk.Frame(self)
+        self.frame_pace.pack(**options_tight)
+        self.pace_label = ttk.Label(self.frame_pace, text='Pace', width=8)
+        self.pace_label.pack(padx=10, side='left')
+        self.pace_hour = tk.StringVar()
+        self.pace_hour = ttk.Entry(self.frame_pace, textvariable=self.pace_hour, width=5)
+        self.pace_hour.pack(padx=5, side='left')
+        ttk.Label(self.frame_pace, text=':').pack(padx=3, side='left')
+        self.pace_min = tk.StringVar()
+        self.pace_min = ttk.Entry(self.frame_pace, textvariable=self.pace_min, width=5)
+        self.pace_min.pack(padx=5, side='left')
+        ttk.Label(self.frame_pace, text=':').pack(padx=3, side='left')
+        self.pace_sec = tk.StringVar()
+        self.pace_sec = ttk.Entry(self.frame_pace, textvariable=self.pace_sec, width=5)
+        self.pace_sec.pack(padx=5, side='left')
 
         # add padding to the frame and show it
-        self.grid(padx=10, pady=10, sticky=tk.NSEW)
+        # self.grid(padx=10, pady=10, sticky=tk.NSEW)
+        self.pack(side=tk.LEFT)
         
         # set the controller
         self.controller = None
@@ -308,7 +344,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title('VDOT')
-        self.geometry('1200x650')
+        self.geometry('1200x700')
         self.resizable(True, True)
         model = Model()
         view = View(self)
