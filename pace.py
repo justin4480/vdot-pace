@@ -77,7 +77,8 @@ pace_coefs = {
         4138.276684781273, -0.007771151460666648, 1.250212534387174e-05])
 }
 
-def format_time(td: datetime.timedelta, strip: bool=True):
+
+def format_time(td: datetime.timedelta, strip: bool = True):
     td = datetime.timedelta(seconds=td.seconds).__str__()
     return re.search(pattern=r'[1-9].*', string=td).group() if strip else td
 
@@ -100,7 +101,7 @@ class Model:
 
     @staticmethod
     def get_pace_from_vdot_and_intensity(vdot, intensity):
-        X = np.array([1, vdot, np.log(vdot), 1/vdot, vdot**2, vdot**3])
+        X = np.array([1, vdot, np.log(vdot), 1 / vdot, vdot**2, vdot**3])
         w = pace_coefs[intensity]
         seconds = np.round(X @ w,)
         return datetime.timedelta(seconds=seconds)
@@ -261,7 +262,7 @@ class View(ttk.Frame):
         # add padding to the frame and show it
         # self.grid(padx=10, pady=10, sticky=tk.NSEW)
         self.pack(side=tk.LEFT)
-        
+
         # set the controller
         self.controller = None
 
@@ -362,7 +363,7 @@ class Controller:
         # distance = 400 meter
         # pace = 4 min / mile
         time = datetime.timedelta(**time)
-        pace = datetime.timedelta(**pace)        
+        pace = datetime.timedelta(**pace)
         # convert from user selected to km
         pace = pace if km_mi == 'km' else Model.convert_pace_miles_to_km(pace)
         distance['units'] = 1 if distance['distance'] in races else distance['units']
@@ -374,7 +375,7 @@ class Controller:
             distance['units'] = Model.calculate_distance(time, pace)
         else:
             pace = Model.calculate_pace(time, distance['units'])
-        
+
         # convert back to user selected km or miles
         pace = pace if km_mi == 'km' else Model.convert_pace_km_to_miles(pace)
 
@@ -390,7 +391,7 @@ class Controller:
         """
         # get training_intensities from Model
         results = {}
-        for v in range(vdot-2, vdot+3):
+        for v in range(vdot - 2, vdot + 3):
             try:
                 results[v] = {pace: self.model.get_pace_from_vdot_and_intensity(v, pace) for pace in training_intensities}
                 if km_mi == 'mi':
@@ -400,11 +401,10 @@ class Controller:
         # output to View
         self.view.print_training_intensity_paces_to_table(results, vdot)
 
-
-    def get_race_paces(self, vdot, km_mi):            
+    def get_race_paces(self, vdot, km_mi):
         # get race from Model
         results = {}
-        for v in range(vdot-2, vdot+3):
+        for v in range(vdot - 2, vdot + 3):
             try:
                 results[v] = {race: self.model.get_pace_from_vdot_and_intensity(v, race) for race in races}
                 if km_mi == 'mi':
@@ -414,11 +414,10 @@ class Controller:
         # output to View
         self.view.print_race_pace_to_table(results, vdot)
 
-
-    def get_race_times(self, vdot, km_mi):            
+    def get_race_times(self, vdot, km_mi):
         # get race from Model
         results = {}
-        for v in range(vdot-2, vdot+3):
+        for v in range(vdot - 2, vdot + 3):
             try:
                 results[v] = {race: self.model.get_time_from_vdot_and_race(v, race) for race in races}
             except:
